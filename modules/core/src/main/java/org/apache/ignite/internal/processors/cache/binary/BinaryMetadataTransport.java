@@ -542,7 +542,6 @@ final class BinaryMetadataTransport {
      *
      */
     private final class MetadataUpdateAcceptedListener implements CustomEventListener<MetadataUpdateAcceptedMessage> {
-
         /** {@inheritDoc} */
         @Override public void onCustomEvent(AffinityTopologyVersion topVer, ClusterNode snd,
             MetadataUpdateAcceptedMessage msg) {
