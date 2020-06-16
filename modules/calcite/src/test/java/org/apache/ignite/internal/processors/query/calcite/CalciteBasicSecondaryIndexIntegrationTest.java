@@ -35,7 +35,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.apache.ignite.internal.processors.query.calcite.QueryChecker.containsAnyScan;
 import static org.apache.ignite.internal.processors.query.calcite.QueryChecker.containsScan;
-import static org.apache.ignite.internal.processors.query.calcite.QueryChecker.containsSubPlan;
+import static org.apache.ignite.internal.processors.query.calcite.QueryChecker.containsSort;
 import static org.apache.ignite.internal.processors.query.calcite.QueryChecker.containsUnion;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.not;
@@ -554,7 +554,7 @@ public class CalciteBasicSecondaryIndexIntegrationTest extends GridCommonAbstrac
     public void testOrderByKey() {
         assertQuery("SELECT id, name, depId, age FROM Developer ORDER BY _key")
             .and(containsScan("PUBLIC", "DEVELOPER", PK))
-            .and(not(containsSubPlan("IgniteSort")))
+            .and(not(containsSort()))
             .returns(1, "Mozart", 3, "Vienna", 33)
             .returns(2, "Beethoven", 2, "Vienna", 44)
             .returns(3, "Bach", 1, "Leipzig", 55)
@@ -568,7 +568,7 @@ public class CalciteBasicSecondaryIndexIntegrationTest extends GridCommonAbstrac
     public void testOrderByKeyAlias() {
         assertQuery("SELECT * FROM Developer ORDER BY id")
             .and(containsScan("PUBLIC", "DEVELOPER", PK_ALIAS))
-            .and(not(containsSubPlan("IgniteSort")))
+            .and(not(containsSort()))
             .returns(1, "Mozart", 3, "Vienna", 33)
             .returns(2, "Beethoven", 2, "Vienna", 44)
             .returns(3, "Bach", 1, "Leipzig", 55)
@@ -582,7 +582,7 @@ public class CalciteBasicSecondaryIndexIntegrationTest extends GridCommonAbstrac
     public void testOrderByDepId() {
         assertQuery("SELECT * FROM Developer ORDER BY depId")
             .and(containsScan("PUBLIC", "DEVELOPER", DEPID_IDX))
-            .and(not(containsSubPlan("IgniteSort")))
+            .and(not(containsSort()))
             .returns(3, "Bach", 1, "Leipzig", 55)
             .returns(4, "Strauss", 2, "Munich", 66)
             .returns(2, "Beethoven", 2, "Vienna", 44)
@@ -596,7 +596,7 @@ public class CalciteBasicSecondaryIndexIntegrationTest extends GridCommonAbstrac
     public void testOrderByNameCityAsc() {
         assertQuery("SELECT * FROM Developer ORDER BY name, city")
             .and(containsScan("PUBLIC", "DEVELOPER", PK))
-            .and(containsSubPlan("IgniteSort"))
+            .and(containsSort())
             .returns(3, "Bach", 1, "Leipzig", 55)
             .returns(2, "Beethoven", 2, "Vienna", 44)
             .returns(1, "Mozart", 3, "Vienna", 33)
@@ -610,7 +610,7 @@ public class CalciteBasicSecondaryIndexIntegrationTest extends GridCommonAbstrac
     public void testOrderByNameCityDesc() {
         assertQuery("SELECT * FROM Developer ORDER BY name DESC, city DESC")
             .and(containsScan("PUBLIC", "DEVELOPER", NAME_CITY_IDX))
-            .and(not(containsSubPlan("IgniteSort")))
+            .and(not(containsSort()))
             .returns(4, "Strauss", 2, "Munich", 66)
             .returns(1, "Mozart", 3, "Vienna", 33)
             .returns(2, "Beethoven", 2, "Vienna", 44)
@@ -624,7 +624,7 @@ public class CalciteBasicSecondaryIndexIntegrationTest extends GridCommonAbstrac
     public void testOrderByNoIndexedColumn() {
         assertQuery("SELECT * FROM Developer ORDER BY age DESC")
             .and(containsScan("PUBLIC", "DEVELOPER", PK))
-            .and(containsSubPlan("IgniteSort"))
+            .and(containsSort())
             .returns(4, "Strauss", 2, "Munich", 66)
             .returns(3, "Bach", 1, "Leipzig", 55)
             .returns(2, "Beethoven", 2, "Vienna", 44)

@@ -32,11 +32,13 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
- *  Query checker.
+ * Query checker.
  */
 public abstract class QueryChecker {
     /**
@@ -63,13 +65,33 @@ public abstract class QueryChecker {
     }
 
     /**
+     * Ignite join matcher.
+     *
+     * @param joinType Join type.
+     * @return Matcher.
+     */
+    public static Matcher<String> containsJoin(String joinType) {
+        return allOf(containsString("IgniteJoin(condition=["),
+            containsString("joinType=[" + joinType + "]"));
+    }
+
+    /**
+     * Ignite sort matcher.
+     *
+     * @return Matcher.
+     */
+    public static Matcher<String> containsSort() {
+        return containsSubPlan("IgniteSort(");
+    }
+
+    /**
      * Sub plan matcher.
      *
      * @param subPlan  Subplan.
      * @return Matcher.
      */
-    public static Matcher<String> containsSubPlan(String subPlan) {
-        return CoreMatchers.containsString(subPlan);
+    static Matcher<String> containsSubPlan(String subPlan) {
+        return containsString(subPlan);
     }
 
     /**
@@ -82,7 +104,7 @@ public abstract class QueryChecker {
      */
     public static Matcher<String> containsAnyScan(final String schema, final String tblName, String... idxNames) {
         return CoreMatchers.anyOf(
-            Arrays.stream(idxNames).map(idx -> CoreMatchers.containsString(
+            Arrays.stream(idxNames).map(idx -> containsString(
                 "IgniteTableScan(table=[[" + schema + ", " + tblName + "]], index=[" + idx + ']'
             )).collect(Collectors.toList()));
     }
@@ -136,7 +158,7 @@ public abstract class QueryChecker {
 
     /** */
     public static Matcher<String> containsUnion(boolean all) {
-        return CoreMatchers.containsString("IgniteUnionAll(all=[" + all + "])");
+        return containsString("IgniteUnionAll(all=[" + all + "])");
     }
 
     /** */
@@ -165,9 +187,11 @@ public abstract class QueryChecker {
         String actualPlan = (String)explainRes.get(0).get(0);
 
         if (!F.isEmpty(planMatchers)) {
-            Matcher<String> matcher = CoreMatchers.allOf(planMatchers.toArray(new Matcher[planMatchers.size()]));
+            String[] items = actualPlan.split("\n");
+            Matcher<String>[] itemMatchers = planMatchers.toArray(new Matcher[planMatchers.size()]);
+            Matcher<Iterable<String>> matcher = CoreMatchers.hasItems(itemMatchers);
 
-            if (!matcher.matches(actualPlan)) {
+            if (!matcher.matches(Arrays.asList(items))) {
                 final StringDescription desc = new StringDescription();
 
                 matcher.describeTo(desc);
