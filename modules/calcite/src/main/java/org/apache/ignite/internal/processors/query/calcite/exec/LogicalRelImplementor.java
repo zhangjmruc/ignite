@@ -17,11 +17,6 @@
 
 package org.apache.ignite.internal.processors.query.calcite.exec;
 
-import java.util.List;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.function.ToIntFunction;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
@@ -34,42 +29,9 @@ import org.apache.ignite.internal.processors.failure.FailureProcessor;
 import org.apache.ignite.internal.processors.query.calcite.exec.RowHandler.RowFactory;
 import org.apache.ignite.internal.processors.query.calcite.exec.exp.ExpressionFactory;
 import org.apache.ignite.internal.processors.query.calcite.exec.exp.agg.AccumulatorWrapper;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.AbstractJoinNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.AbstractNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.AggregateNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.AntiJoinNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.FilterNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.FullOuterJoinNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.Inbox;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.InnerJoinNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.LeftJoinNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.ModifyNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.Node;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.Outbox;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.ProjectNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.RightJoinNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.ScanNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.SemiJoinNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.SortNode;
-import org.apache.ignite.internal.processors.query.calcite.exec.rel.UnionAllNode;
+import org.apache.ignite.internal.processors.query.calcite.exec.rel.*;
 import org.apache.ignite.internal.processors.query.calcite.metadata.PartitionService;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteAggregate;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteExchange;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteFilter;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteJoin;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteMapAggregate;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteProject;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteReceiver;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteReduceAggregate;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteRel;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteRelVisitor;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteSender;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteSort;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteTableModify;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteTableScan;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteTrimExchange;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteUnionAll;
-import org.apache.ignite.internal.processors.query.calcite.rel.IgniteValues;
+import org.apache.ignite.internal.processors.query.calcite.rel.*;
 import org.apache.ignite.internal.processors.query.calcite.schema.IgniteIndex;
 import org.apache.ignite.internal.processors.query.calcite.schema.IgniteTable;
 import org.apache.ignite.internal.processors.query.calcite.schema.TableDescriptor;
@@ -78,6 +40,12 @@ import org.apache.ignite.internal.processors.query.calcite.trait.DistributionFun
 import org.apache.ignite.internal.processors.query.calcite.trait.IgniteDistribution;
 import org.apache.ignite.internal.processors.query.calcite.util.Commons;
 import org.apache.ignite.internal.util.typedef.F;
+
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 
 /**
  * Implements a query plan.

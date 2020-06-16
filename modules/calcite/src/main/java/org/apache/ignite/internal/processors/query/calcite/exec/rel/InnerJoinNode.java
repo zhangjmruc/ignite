@@ -17,8 +17,9 @@
 
 package org.apache.ignite.internal.processors.query.calcite.exec.rel;
 
-import java.util.function.Predicate;
 import org.apache.ignite.internal.processors.query.calcite.exec.ExecutionContext;
+
+import java.util.function.Predicate;
 
 /** */
 public class InnerJoinNode<Row> extends AbstractJoinNode<Row> {
@@ -37,8 +38,7 @@ public class InnerJoinNode<Row> extends AbstractJoinNode<Row> {
     }
 
     /** */
-    @Override
-    protected void doJoin() {
+    @Override protected void doJoin() {
         if (waitingRight == NOT_WAITING) {
             while (requested > 0 && (left != null || !leftInBuf.isEmpty())) {
                 if (left == null)
