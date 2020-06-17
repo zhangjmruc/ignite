@@ -67,7 +67,6 @@ public class CalciteQueryProcessor extends GridProcessorAdapter implements Query
             .sqlToRelConverterConfig(SqlToRelConverter.configBuilder()
                 .withTrimUnusedFields(true)
                 .withDecorrelationEnabled(true)
-//                .withExpand(false)
                 .build())
             .parserConfig(SqlParser.configBuilder()
                 // Lexical configuration defines how identifiers are quoted, whether they are converted to upper or lower

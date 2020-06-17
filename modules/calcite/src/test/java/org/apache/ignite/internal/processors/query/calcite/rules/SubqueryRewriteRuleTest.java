@@ -29,6 +29,7 @@ import org.apache.ignite.internal.processors.query.QueryEngine;
 import org.apache.ignite.internal.processors.query.calcite.QueryChecker;
 import org.apache.ignite.internal.processors.query.calcite.util.Commons;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
@@ -199,18 +200,53 @@ public class SubqueryRewriteRuleTest extends GridCommonAbstractTest {
     }
 
     /**
-     * Check subquery rewrite rule is applied for correlated query.
+     * Check subquery rewrite rule is applied for non-correlated query.
      *
      * @throws Exception If failed.
      */
     @Test
-    public void testNonInToSemiAntiJoinRule() throws Exception {
+    public void testNonInToSemiJoinRule() throws Exception {
+        checkQuery("SELECT c_name\n" +
+            "FROM CUSTOMER\n" +
+            "WHERE c_countrykey NOT IN (SELECT s_countrykey FROM SUPPLIER)")
+            .and(QueryChecker.containsJoin("left"))
+            .and(QueryChecker.containsJoin("inner"))
+            .and(containsScan("PUBLIC", "CUSTOMER", "PK"))
+            .and(containsScan("PUBLIC", "SUPPLIER", "PK"))
+            .check();
+    }
+
+    /**
+     * Check subquery rewrite rule is applied for non-correlated query.
+     *
+     * @throws Exception If failed.
+     */
+    @Ignore("https://issues.apache.org/jira/browse/IGNITE-13159")
+    @Test
+    public void testNonAllToSemiAntiJoinRule() throws Exception {
         checkQuery("SELECT c_name\n" +
             "FROM CUSTOMER\n" +
             "WHERE c_countrykey <> ALL (SELECT s_countrykey FROM SUPPLIER)")
             .and(QueryChecker.containsJoin("anti"))
             .and(containsScan("PUBLIC", "CUSTOMER", "PK"))
-            .and(containsScan("PUBLIC", "ORDERS", "PK"))
+            .and(containsScan("PUBLIC", "SUPPLIER", "PK"))
+            .check();
+    }
+
+    /**
+     * Check subquery rewrite rule is applied for correlated query.
+     *
+     * @throws Exception If failed.
+     */
+    @Ignore("https://issues.apache.org/jira/browse/IGNITE-13159")
+    @Test
+    public void testNonInToSemiAntiJoinRule2() throws Exception {
+        checkQuery("SELECT c_name\n" +
+            "FROM CUSTOMER\n" +
+            "WHERE c_countrykey NOT IN (SELECT s_countrykey FROM SUPPLIER WHERE s_supkey = c_custkey)")
+            .and(QueryChecker.containsJoin("left"))
+            .and(containsScan("PUBLIC", "CUSTOMER", "PK"))
+            .and(containsScan("PUBLIC", "SUPPLIER", "PK"))
             .check();
     }
 
