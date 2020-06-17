@@ -190,7 +190,7 @@ public class SubqueryRewriteRuleTest extends GridCommonAbstractTest {
         checkQuery("SELECT c_custkey\n" +
             "FROM CUSTOMER\n" +
             "WHERE c_countrykey = 86 AND EXISTS(\n" +
-            "    SELECT * FROM ORDERS\n" +
+            "    SELECT 1 FROM ORDERS\n" +
             "    WHERE o_custkey = c_custkey \n" + // Correlated.
             ")")
             .and(QueryChecker.containsJoin("semi"))
@@ -213,6 +213,26 @@ public class SubqueryRewriteRuleTest extends GridCommonAbstractTest {
             .and(QueryChecker.containsJoin("inner"))
             .and(containsScan("PUBLIC", "CUSTOMER", "PK"))
             .and(containsScan("PUBLIC", "SUPPLIER", "PK"))
+            .check();
+    }
+
+    /**
+     * Check subquery rewrite rule is applied for correlated query.
+     *
+     * @throws Exception If failed.
+     */
+    @Ignore("https://issues.apache.org/jira/browse/IGNITE-13159")
+    @Test
+    public void testNotExistsToAntiJoinRule() throws Exception {
+        checkQuery("SELECT c_custkey\n" +
+            "FROM CUSTOMER\n" +
+            "WHERE NOT EXISTS(\n" +
+            "    SELECT 1 FROM ORDERS\n" +
+            "    WHERE o_custkey = c_custkey \n" + // Correlated.
+            ")")
+            .and(QueryChecker.containsJoin("anti"))
+            .and(containsScan("PUBLIC", "CUSTOMER", "PK"))
+            .and(containsScan("PUBLIC", "ORDERS", "PK"))
             .check();
     }
 
