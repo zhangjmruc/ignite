@@ -204,7 +204,7 @@ public class SubqueryRewriteRuleTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     @Test
-    public void testNonInToAntiJoinRule() throws Exception {
+    public void testNonInToSemiAntiJoinRule() throws Exception {
         checkQuery("SELECT c_name\n" +
             "FROM CUSTOMER\n" +
             "WHERE c_countrykey <> ALL (SELECT s_countrykey FROM SUPPLIER)")
