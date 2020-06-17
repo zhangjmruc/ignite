@@ -208,9 +208,8 @@ public class SubqueryRewriteRuleTest extends GridCommonAbstractTest {
     public void testNonInToSemiJoinRule() throws Exception {
         checkQuery("SELECT c_name\n" +
             "FROM CUSTOMER\n" +
-            "WHERE c_countrykey NOT IN (SELECT s_countrykey FROM SUPPLIER)")
-            .and(QueryChecker.containsJoin("left"))
-            .and(QueryChecker.containsJoin("inner"))
+            "WHERE c_countrykey IN (SELECT s_countrykey FROM SUPPLIER)")
+            .and(QueryChecker.containsJoin("semi"))
             .and(containsScan("PUBLIC", "CUSTOMER", "PK"))
             .and(containsScan("PUBLIC", "SUPPLIER", "PK"))
             .check();
