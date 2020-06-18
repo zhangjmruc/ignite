@@ -186,23 +186,7 @@ public abstract class QueryChecker {
         List<List<?>> explainRes = explainCursor.getAll();
         String actualPlan = (String)explainRes.get(0).get(0);
 
-        if (!F.isEmpty(planMatchers)) {
-            String[] items = actualPlan.split("\n");
-            Matcher<String>[] itemMatchers = planMatchers.toArray(new Matcher[planMatchers.size()]);
-            Matcher<Iterable<String>> matcher = CoreMatchers.hasItems(itemMatchers);
-
-            if (!matcher.matches(Arrays.asList(items))) {
-                final StringDescription desc = new StringDescription();
-
-                matcher.describeTo(desc);
-
-                fail(desc.toString());
-            }
-        }
-
-        if (exactPlan != null) {
-            assertEquals(exactPlan, actualPlan);
-        }
+        validatePlan(actualPlan);
 
         // Check result.
         List<FieldsQueryCursor<List<?>>> cursors =
@@ -223,6 +207,28 @@ public abstract class QueryChecker {
         }
     }
 
+    /** */
+    protected void validatePlan(String actualPlan) {
+        if (!F.isEmpty(planMatchers)) {
+            String[] items = actualPlan.split("\n");
+            Matcher<String>[] itemMatchers = planMatchers.toArray(new Matcher[planMatchers.size()]);
+            Matcher<Iterable<String>> matcher = CoreMatchers.hasItems(itemMatchers);
+
+            if (!matcher.matches(Arrays.asList(items))) {
+                final StringDescription desc = new StringDescription();
+
+                matcher.describeTo(desc);
+
+                fail(desc.toString());
+            }
+        }
+
+        if (exactPlan != null) {
+            assertEquals(exactPlan, actualPlan);
+        }
+    }
+
+    /** */
     protected abstract QueryEngine getEngine();
 
     /**

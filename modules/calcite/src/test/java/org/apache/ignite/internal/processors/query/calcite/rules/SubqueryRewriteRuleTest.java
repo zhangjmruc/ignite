@@ -17,25 +17,70 @@
 
 package org.apache.ignite.internal.processors.query.calcite.rules;
 
-import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
-import org.apache.ignite.cache.CacheMode;
-import org.apache.ignite.cache.QueryEntity;
-import org.apache.ignite.cache.QueryIndex;
-import org.apache.ignite.cache.QueryIndexType;
-import org.apache.ignite.cache.affinity.AffinityKeyMapped;
-import org.apache.ignite.configuration.CacheConfiguration;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelReferentialConstraint;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.ignite.internal.processors.affinity.AffinityTopologyVersion;
 import org.apache.ignite.internal.processors.query.QueryEngine;
 import org.apache.ignite.internal.processors.query.calcite.QueryChecker;
+import org.apache.ignite.internal.processors.query.calcite.metadata.NodesMapping;
+import org.apache.ignite.internal.processors.query.calcite.prepare.IgnitePlanner;
+import org.apache.ignite.internal.processors.query.calcite.prepare.PlannerPhase;
+import org.apache.ignite.internal.processors.query.calcite.prepare.PlanningContext;
+import org.apache.ignite.internal.processors.query.calcite.rel.IgniteConvention;
+import org.apache.ignite.internal.processors.query.calcite.rel.IgniteTableScan;
+import org.apache.ignite.internal.processors.query.calcite.schema.IgniteIndex;
+import org.apache.ignite.internal.processors.query.calcite.schema.IgniteSchema;
+import org.apache.ignite.internal.processors.query.calcite.schema.IgniteTable;
+import org.apache.ignite.internal.processors.query.calcite.schema.TableDescriptor;
+import org.apache.ignite.internal.processors.query.calcite.trait.DistributionTraitDef;
+import org.apache.ignite.internal.processors.query.calcite.trait.IgniteDistribution;
+import org.apache.ignite.internal.processors.query.calcite.trait.IgniteDistributions;
+import org.apache.ignite.internal.processors.query.calcite.type.IgniteTypeFactory;
+import org.apache.ignite.internal.processors.query.calcite.type.IgniteTypeSystem;
 import org.apache.ignite.internal.processors.query.calcite.util.Commons;
+import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
+import static org.apache.calcite.tools.Frameworks.createRootSchema;
+import static org.apache.calcite.tools.Frameworks.newConfigBuilder;
+import static org.apache.ignite.internal.processors.query.calcite.CalciteQueryProcessor.FRAMEWORK_CONFIG;
 import static org.apache.ignite.internal.processors.query.calcite.QueryChecker.containsScan;
 import static org.apache.ignite.internal.processors.query.calcite.QueryChecker.containsSort;
+import static org.apache.ignite.internal.processors.query.calcite.schema.IgniteTableImpl.PK_INDEX_NAME;
 import static org.hamcrest.CoreMatchers.not;
 
 /**
@@ -43,79 +88,74 @@ import static org.hamcrest.CoreMatchers.not;
  */
 public class SubqueryRewriteRuleTest extends GridCommonAbstractTest {
     /** */
-    public static final String IDX_ORDER_CUST_KEY = "IDX_ORDER_CUST_KEY";
+    private List<UUID> nodes;
+
+    /** */
+    private PlanningContext ctx;
 
     /** {@inheritDoc} */
-    @Override protected void beforeTestsStarted() throws Exception {
-        Ignite grid = startGridsMultiThreaded(2);
+    @Override protected void beforeTest() throws Exception {
+        nodes = new ArrayList<>(4);
 
-        IgniteCache<Integer, Customer> custCache;
-        IgniteCache<Integer, Order> ordCache;
-        IgniteCache<Integer, Supplier> supCache;
-        {
-            QueryEntity qryEnt = new QueryEntity();
-            qryEnt.setTableName("customer");
-            qryEnt.setKeyFieldName("c_custkey");
-            qryEnt.setKeyType(Integer.class.getName());
-            qryEnt.setValueType(Customer.class.getName());
+        for (int i = 0; i < 4; i++)
+            nodes.add(UUID.randomUUID());
 
-            qryEnt.addQueryField("c_custkey", Integer.class.getName(), null);
-            qryEnt.addQueryField("countryKey", Integer.class.getName(), "c_countrykey");
-            qryEnt.addQueryField("name", String.class.getName(), "c_name");
+        IgniteTypeFactory f = new IgniteTypeFactory(IgniteTypeSystem.INSTANCE);
 
-            CacheConfiguration<Integer, Customer> ccfg = new CacheConfiguration<>(qryEnt.getTableName());
-            ccfg.setCacheMode(CacheMode.PARTITIONED)
-                    .setBackups(1)
-                    .setQueryEntities(singletonList(qryEnt))
-                    .setSqlSchema("PUBLIC");
+        TestTable customer = new TestTable(
+                new RelDataTypeFactory.Builder(f)
+                        .add("C_CUSTKEY", f.createJavaType(Integer.class))
+                        .add("C_NAME", f.createJavaType(String.class))
+                        .add("C_COUNTRYKEY", f.createJavaType(Integer.class))
+                        .build());
 
-            custCache = grid.createCache(ccfg);
-        }
 
-        {
-            QueryEntity qryEnt = new QueryEntity();
-            qryEnt.setTableName("orders");
-            qryEnt.setKeyFieldName("o_orderkey");
-            qryEnt.setKeyType(Integer.class.getName());
-            qryEnt.setValueType(Order.class.getName());
+        TestTable orders = new TestTable(
+                new RelDataTypeFactory.Builder(f)
+                        .add("O_ORDERKEY", f.createJavaType(Integer.class))
+                        .add("O_CUSTKEY", f.createJavaType(Integer.class))
+                        .add("O_TOTALPRICE", f.createJavaType(Integer.class))
+                        .build());
 
-            qryEnt.addQueryField("o_orderkey", Integer.class.getName(), null);
-            qryEnt.addQueryField("custId", Integer.class.getName(), "o_custkey");
-            qryEnt.addQueryField("totalPrice", Long.class.getName(), "o_totalprice");
+        orders.addIndex(new IgniteIndex(RelCollations.of(1), "IDX_O_CUSTKEY", null, orders));
 
-            qryEnt.setIndexes(asList(
-                    new QueryIndex("custId", QueryIndexType.SORTED).setName(IDX_ORDER_CUST_KEY)
-            ));
+        TestTable suppliers = new TestTable(
+                new RelDataTypeFactory.Builder(f)
+                        .add("S_SUPKEY", f.createJavaType(Integer.class))
+                        .add("S_COUNTRYKEY", f.createJavaType(Integer.class))
+                        .build());
 
-            CacheConfiguration<Integer, Order> ccfg = new CacheConfiguration<>(qryEnt.getTableName());
-            ccfg.setCacheMode(CacheMode.PARTITIONED)
-                    .setBackups(1)
-                    .setQueryEntities(singletonList(qryEnt))
-                    .setSqlSchema("PUBLIC");
 
-            ordCache = grid.createCache(ccfg);
-        }
+//        customer.addIndex(new IgniteIndex(RelCollations.of(2), "IDX_C_COUNTRYKEY", null, customer));
+        suppliers.addIndex(new IgniteIndex(RelCollations.of(1), "IDX_S_COUNTRYKEY", null, suppliers));
 
-        {
-            QueryEntity qryEnt = new QueryEntity();
-            qryEnt.setTableName("supplier");
-            qryEnt.setKeyFieldName("s_supkey");
-            qryEnt.setKeyType(Integer.class.getName());
-            qryEnt.setValueType(Order.class.getName());
+        IgniteSchema publicSchema = new IgniteSchema("PUBLIC");
 
-            qryEnt.addQueryField("s_supkey", Integer.class.getName(), null);
-            qryEnt.addQueryField("countryKey", Integer.class.getName(), "s_countrykey");
+        publicSchema.addTable("CUSTOMER", customer);
+        publicSchema.addTable("ORDERS", orders);
+        publicSchema.addTable("SUPPLIER", suppliers);
 
-            CacheConfiguration<Integer, Supplier> ccfg = new CacheConfiguration<>(qryEnt.getTableName());
-            ccfg.setCacheMode(CacheMode.PARTITIONED)
-                    .setBackups(1)
-                    .setQueryEntities(singletonList(qryEnt))
-                    .setSqlSchema("PUBLIC");
+        SchemaPlus schema = createRootSchema(false)
+                .add("PUBLIC", publicSchema);
 
-            supCache = grid.createCache(ccfg);
-        }
+        RelTraitDef<?>[] traitDefs = {
+                DistributionTraitDef.INSTANCE,
+                ConventionTraitDef.INSTANCE,
+                RelCollationTraitDef.INSTANCE
+        };
 
-        awaitPartitionMapExchange();
+        ctx = PlanningContext.builder()
+                .localNodeId(F.first(nodes))
+                .originatingNodeId(F.first(nodes))
+                .parentContext(Contexts.empty())
+                .frameworkConfig(newConfigBuilder(FRAMEWORK_CONFIG)
+                        .defaultSchema(schema)
+                        .traitDefs(traitDefs)
+                        .build())
+                .logger(log)
+                .parameters(2)
+                .topologyVersion(AffinityTopologyVersion.NONE)
+                .build();
     }
 
     /**
@@ -277,46 +317,188 @@ public class SubqueryRewriteRuleTest extends GridCommonAbstractTest {
             @Override protected QueryEngine getEngine() {
                 return Commons.lookupComponent(grid(0).context(), QueryEngine.class);
             }
+
+            @Override public void check() {
+                RelNode root;
+
+                try (IgnitePlanner planner = ctx.planner()) {
+                    assertNotNull(planner);
+
+                    assertNotNull(qry);
+
+                    // Parse
+                    SqlNode sqlNode = planner.parse(qry);
+
+                    // Validate
+                    sqlNode = planner.validate(sqlNode);
+
+                    // Convert to Relational operators graph
+                    root = planner.convert(sqlNode);
+
+                    // Transformation chain
+                    root = planner.transform(PlannerPhase.HEURISTIC_OPTIMIZATION, root.getTraitSet(), root);
+
+                    // Transformation chain
+                    RelTraitSet desired = root.getCluster().traitSet()
+                            .replace(IgniteConvention.INSTANCE)
+                            .replace(IgniteDistributions.single())
+                            .replace(planner.rel(sqlNode).collation == null ? RelCollations.EMPTY : planner.rel(sqlNode).collation)
+                            .simplify();
+
+                    root = planner.transform(PlannerPhase.OPTIMIZATION, desired, root);
+
+                    String queryPlan = RelOptUtil.toString(root);
+
+                    log.info("Actual plan: " + queryPlan);
+
+                    validatePlan(queryPlan);
+                } catch (Exception e) {
+                    log.error("Failed to build query plan:", e);
+
+                    fail(e.getMessage());
+                }
+            }
         };
     }
 
-    /**
-     *
-     */
-    static class Customer {
+    /** */
+    private static class TestTable implements IgniteTable {
         /** */
-        int id;
+        private final RelProtoDataType protoType;
 
         /** */
-        String name;
+        private final Map<String, IgniteIndex> indexes = new HashMap<>();
 
         /** */
-        int countrykey;
-    }
+        private TestTable(RelDataType type) {
+            protoType = RelDataTypeImpl.proto(type);
 
-    /**
-     *
-     */
-    static class Order {
-        /** */
-        int id;
+            addIndex(new IgniteIndex(RelCollations.EMPTY,  PK_INDEX_NAME, null, this));
+        }
 
-        /** */
-        long totalPrice;
+        /** {@inheritDoc} */
+        @Override public RelNode toRel(RelOptTable.ToRelContext ctx, RelOptTable relOptTbl) {
+            RelOptCluster cluster = ctx.getCluster();
 
-        /** */
-        @AffinityKeyMapped
-        int custId;
-    }
+            return toRel(cluster, relOptTbl, PK_INDEX_NAME);
+        }
 
-    /**
-     *
-     */
-    static class Supplier {
-        /** */
-        int id;
+        /** {@inheritDoc} */
+        @Override public IgniteTableScan toRel(RelOptCluster cluster, RelOptTable relOptTbl, String idxName) {
+            RelTraitSet traitSet = cluster.traitSetOf(IgniteConvention.INSTANCE)
+                    .replaceIfs(RelCollationTraitDef.INSTANCE, this::collations)
+                    .replaceIf(DistributionTraitDef.INSTANCE, this::distribution);
 
-        /** */
-        int countrykey;
+            IgniteIndex idx = getIndex(idxName);
+
+            if (idx == null)
+                return null;
+
+            traitSet = traitSet.replace(idx.collation());
+
+            return new IgniteTableScan(cluster, traitSet, relOptTbl, idxName, null);
+        }
+
+        /** {@inheritDoc} */
+        @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+            return protoType.apply(typeFactory);
+        }
+
+        /** {@inheritDoc} */
+        @Override public Statistic getStatistic() {
+            return new Statistic() {
+                /** {@inheritDoc */
+                @Override public Double getRowCount() {
+                    return 100.0;
+                }
+
+                /** {@inheritDoc */
+                @Override public boolean isKey(ImmutableBitSet cols) {
+                    return false;
+                }
+
+                /** {@inheritDoc */
+                @Override public List<ImmutableBitSet> getKeys() {
+                    throw new AssertionError();
+                }
+
+                /** {@inheritDoc */
+                @Override public List<RelReferentialConstraint> getReferentialConstraints() {
+                    throw new AssertionError();
+                }
+
+                /** {@inheritDoc */
+                @Override public List<RelCollation> getCollations() {
+                    return Collections.emptyList();
+                }
+
+                /** {@inheritDoc */
+                @Override public RelDistribution getDistribution() {
+                    throw new AssertionError();
+                }
+            };
+        }
+
+        /** {@inheritDoc} */
+        @Override public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters, int[] projects) {
+            throw new AssertionError();
+        }
+
+
+        /** {@inheritDoc} */
+        @Override public Schema.TableType getJdbcTableType() {
+            throw new AssertionError();
+        }
+
+        /** {@inheritDoc} */
+        @Override public boolean isRolledUp(String col) {
+            return false;
+        }
+
+        /** {@inheritDoc} */
+        @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call, SqlNode parent,
+                                                              CalciteConnectionConfig config) {
+            throw new AssertionError();
+        }
+
+        /** {@inheritDoc} */
+        @Override public NodesMapping mapping(PlanningContext ctx) {
+            throw new AssertionError();
+        }
+
+        /** {@inheritDoc} */
+        @Override public IgniteDistribution distribution() {
+            return IgniteDistributions.broadcast();
+        }
+
+        /** {@inheritDoc} */
+        @Override public List<RelCollation> collations() {
+            return ImmutableList.of(RelCollations.EMPTY);
+        }
+
+        /** {@inheritDoc} */
+        @Override public TableDescriptor descriptor() {
+            throw new AssertionError();
+        }
+
+        /** {@inheritDoc} */
+        @Override public Map<String, IgniteIndex> indexes() {
+            return indexes;
+        }
+
+        /** {@inheritDoc} */
+        @Override public void addIndex(IgniteIndex idxTbl) {
+            indexes.put(idxTbl.name(), idxTbl);
+        }
+
+        /** {@inheritDoc} */
+        @Override public IgniteIndex getIndex(String idxName) {
+            return indexes.get(idxName);
+        }
+
+        /** {@inheritDoc} */
+        @Override public void removeIndex(String idxName) {
+            throw new AssertionError();
+        }
     }
 }
