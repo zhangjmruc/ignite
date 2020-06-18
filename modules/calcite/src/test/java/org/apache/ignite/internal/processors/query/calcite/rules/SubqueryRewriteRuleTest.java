@@ -109,7 +109,6 @@ public class SubqueryRewriteRuleTest extends GridCommonAbstractTest {
                         .add("C_COUNTRYKEY", f.createJavaType(Integer.class))
                         .build());
 
-
         TestTable orders = new TestTable(
                 new RelDataTypeFactory.Builder(f)
                         .add("O_ORDERKEY", f.createJavaType(Integer.class))
@@ -125,8 +124,6 @@ public class SubqueryRewriteRuleTest extends GridCommonAbstractTest {
                         .add("S_COUNTRYKEY", f.createJavaType(Integer.class))
                         .build());
 
-
-//        customer.addIndex(new IgniteIndex(RelCollations.of(2), "IDX_C_COUNTRYKEY", null, customer));
         suppliers.addIndex(new IgniteIndex(RelCollations.of(1), "IDX_S_COUNTRYKEY", null, suppliers));
 
         IgniteSchema publicSchema = new IgniteSchema("PUBLIC");
@@ -373,7 +370,7 @@ public class SubqueryRewriteRuleTest extends GridCommonAbstractTest {
         private TestTable(RelDataType type) {
             protoType = RelDataTypeImpl.proto(type);
 
-            addIndex(new IgniteIndex(RelCollations.EMPTY,  PK_INDEX_NAME, null, this));
+            addIndex(new IgniteIndex(RelCollations.EMPTY, PK_INDEX_NAME, null, this));
         }
 
         /** {@inheritDoc} */
