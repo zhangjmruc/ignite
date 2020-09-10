@@ -402,7 +402,7 @@ public class SchemaManager {
      * @param schemaName Schema name.
      * @param predefined Whether this is predefined schema.
      */
-    private void createSchema(String schemaName, boolean predefined) throws IgniteCheckedException {
+    public void createSchema(String schemaName, boolean predefined) throws IgniteCheckedException {
         assert Thread.holdsLock(schemaMux);
 
         if (!predefined)
@@ -514,7 +514,7 @@ public class SchemaManager {
      * @param schemaName Schema name.
      * @return Schema.
      */
-    private H2Schema schema(String schemaName) {
+    public H2Schema schema(String schemaName) {
         return schemas.get(schemaName);
     }
 

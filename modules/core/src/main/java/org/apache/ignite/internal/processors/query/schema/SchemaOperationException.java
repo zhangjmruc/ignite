@@ -51,6 +51,12 @@ public class SchemaOperationException extends IgniteCheckedException {
     /** Code: index already exists. */
     public static final int CODE_INDEX_EXISTS = 7;
 
+    /** Code: schema already exists. */
+    public static final int CODE_SCHEMA_EXISTS = 9;
+
+    /** Code: schema not found. */
+    public static final int CODE_SCHEMA_NOT_FOUND = 10;
+
     /** Error code. */
     private final int code;
 
@@ -128,6 +134,12 @@ public class SchemaOperationException extends IgniteCheckedException {
 
             case CODE_INDEX_EXISTS:
                 return "Index already exists: " + objName;
+
+            case CODE_SCHEMA_EXISTS:
+                return "Schema already exists: " + objName;
+
+            case CODE_SCHEMA_NOT_FOUND:
+                return "Schema doesn't exists: " + objName;
 
             default:
                 assert false;

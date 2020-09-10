@@ -80,8 +80,10 @@ import org.apache.ignite.internal.processors.query.h2.sql.GridSqlAlterTableDropC
 import org.apache.ignite.internal.processors.query.h2.sql.GridSqlColumn;
 import org.apache.ignite.internal.processors.query.h2.sql.GridSqlCreateIndex;
 import org.apache.ignite.internal.processors.query.h2.sql.GridSqlCreateTable;
+import org.apache.ignite.internal.processors.query.h2.sql.GridSqlCreateSchema;
 import org.apache.ignite.internal.processors.query.h2.sql.GridSqlDropIndex;
 import org.apache.ignite.internal.processors.query.h2.sql.GridSqlDropTable;
+import org.apache.ignite.internal.processors.query.h2.sql.GridSqlDropSchema;
 import org.apache.ignite.internal.processors.query.h2.sql.GridSqlStatement;
 import org.apache.ignite.internal.processors.query.messages.GridQueryKillRequest;
 import org.apache.ignite.internal.processors.query.messages.GridQueryKillResponse;
@@ -870,6 +872,36 @@ public class CommandProcessor {
                     }
                 }
             }
+            else if (cmdH2 instanceof GridSqlCreateSchema) {
+                GridSqlCreateSchema cmd = (GridSqlCreateSchema) cmdH2;
+
+                H2Schema schm = schemaMgr.schema(cmd.schemaName());
+
+                if (schm != null) {
+                    if (!cmd.ifNotExists())
+                        throw new SchemaOperationException(SchemaOperationException.CODE_SCHEMA_EXISTS,
+                                cmd.schemaName());
+                }
+                else {
+                    schemaMgr.createSchema(cmd.schemaName(), false);
+                }
+            }
+            else if (cmdH2 instanceof GridSqlDropSchema) {
+                GridSqlDropSchema cmd = (GridSqlDropSchema) cmdH2;
+
+                isDdlOnSchemaSupported(cmd.schemaName());
+
+                H2Schema schm = schemaMgr.schema(cmd.schemaName());
+
+                if (schm == null) {
+                    if (!cmd.ifExists())
+                        throw new SchemaOperationException(SchemaOperationException.CODE_SCHEMA_NOT_FOUND,
+                                cmd.schemaName());
+                }
+                else {
+                    schemaMgr.DynamicDropSchema(cmd.schemaName());
+                }
+            }
             else
                 throw new IgniteSQLException("Unsupported DDL operation: " + sql,
                     IgniteQueryErrorCode.UNSUPPORTED_OPERATION);
@@ -1097,7 +1129,8 @@ public class CommandProcessor {
      */
     public static boolean isCommand(Prepared cmd) {
         return cmd instanceof CreateIndex || cmd instanceof DropIndex || cmd instanceof CreateTable ||
-            cmd instanceof DropTable || cmd instanceof AlterTableAlterColumn;
+            cmd instanceof DropTable || cmd instanceof AlterTableAlterColumn || cmd instanceof CreateSchema ||
+            cmd instanceof DropSchema;
     }
 
     /**

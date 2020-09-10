@@ -407,6 +407,19 @@ public class GridSqlQueryParser {
     private static final Getter<DropTable, String> DROP_TABLE_NAME = getter(DropTable.class, "tableName");
 
     /** */
+    private static final Getter<CreateSchema, String> CREATE_SCHEMA_NAME = getter(CreateSchema.class, "schemaName");
+
+    /** */
+    private static final Getter<CreateSchema, Boolean> CREATE_SCHEMA_IF_NOT_EXISTS = getter(CreateSchema.class,
+            "ifNotExists");
+
+    /** */
+    private static final Getter<DropSchema, String> DROP_SCHEMA_NAME = getter(DropSchema.class, "schemaName");
+
+    /** */
+    private static final Getter<DropSchema, Boolean> DROP_SCHEMA_IF_EXISTS = getter(DropSchema.class, "ifExists");
+
+    /** */
     private static final Getter<Column, Boolean> COLUMN_IS_COMPUTED = getter(Column.class, "isComputed");
 
     /** */
@@ -1321,6 +1334,34 @@ public class GridSqlQueryParser {
     }
 
     /**
+     * Parse {@code CREATE SCHEMA} statement.
+     *
+     * @param stmt @code CREATE SCHEMA} statement.
+     */
+    private GridSqlCreateSchema parseCreateSchema(CreateSchema stmt) {
+        GridSqlCreateSchema res = new GridSqlCreateSchema();
+
+        res.schemaName(CREATE_SCHEMA_NAME.get(stmt));
+        res.ifNotExists(CREATE_SCHEMA_IF_NOT_EXISTS.get(stmt));
+
+        return res;
+    }
+
+    /**
+     * Parse {@code DROP SCHEMA} statement.
+     *
+     * @param stmt @code DROP SCHEMA} statement.
+     */
+    private GridSqlDropSchema parseDropSchema(DropSchema stmt) {
+        GridSqlDropSchema res = new GridSqlDropSchema();
+
+        res.schemaName(DROP_SCHEMA_NAME.get(stmt));
+        res.ifExists(DROP_SCHEMA_IF_EXISTS.get(stmt));
+
+        return res;
+    }
+
+    /**
      * Parse {@code ALTER TABLE} statement.
      * @param stmt H2 statement.
      */
@@ -1966,6 +2007,12 @@ public class GridSqlQueryParser {
 
         if (stmt instanceof AlterTableAlterColumn)
             return parseAlterColumn((AlterTableAlterColumn)stmt);
+
+        if (stmt instanceof CreateSchema)
+            return parseCreateSchema((CreateSchema) stmt);
+
+        if (stmt instanceof DropSchema)
+            return parseDropSchema((DropSchema) stmt);
 
         throw new IgniteSQLException("Unsupported statement: " + stmt,
             IgniteQueryErrorCode.UNSUPPORTED_OPERATION);
