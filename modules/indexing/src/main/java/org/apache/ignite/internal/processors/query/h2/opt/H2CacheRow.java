@@ -77,6 +77,9 @@ public class H2CacheRow extends H2Row implements CacheDataRow {
             case QueryUtils.VAL_COL:
                 return valueWrapped();
 
+            case QueryUtils.TIME_COL:
+                return timeWrapped();
+
             default:
                 if (desc.isKeyAliasColumn(col))
                     return keyWrapped();
@@ -155,6 +158,16 @@ public class H2CacheRow extends H2Row implements CacheDataRow {
      */
     private Value valueWrapped() {
         return wrap(row.value(), desc.valueType());
+    }
+
+    /**
+     * @return wrapped Time value.
+     */
+    private Value timeWrapped() {
+        Object res = desc.timeColumnValue(row.key(), row.value());
+        Value v = res == null ? ValueNull.INSTANCE : wrap(res, desc.timeType());
+
+        return v;
     }
 
     /**
@@ -315,7 +328,7 @@ public class H2CacheRow extends H2Row implements CacheDataRow {
         sb.a(" ][ ");
 
         if (v != null) {
-            for (int i = QueryUtils.DEFAULT_COLUMNS_COUNT, cnt = getColumnCount(); i < cnt; i++) {
+            for (int i = QueryUtils.DEFAULT_COLUMNS_COUNT-1, cnt = getColumnCount(); i < cnt; i++) {  //added a _time
                 v = getValue(i);
 
                 if (i != QueryUtils.DEFAULT_COLUMNS_COUNT)

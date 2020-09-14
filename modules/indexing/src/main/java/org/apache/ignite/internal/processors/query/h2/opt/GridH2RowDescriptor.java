@@ -17,6 +17,7 @@
 
 package org.apache.ignite.internal.processors.query.h2.opt;
 
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,6 +63,9 @@ public class GridH2RowDescriptor {
     private final int valType;
 
     /** */
+    private final int timeType;
+
+    /** */
     private volatile GridQueryProperty[] props;
 
     /** Id of user-defined key column */
@@ -84,6 +88,7 @@ public class GridH2RowDescriptor {
 
         keyType = DataType.getTypeFromClass(type.keyClass());
         valType = DataType.getTypeFromClass(type.valueClass());
+        timeType = DataType.getTypeFromClass(Timestamp.class);
 
         refreshMetadataFromTypeDescriptor();
     }
@@ -206,6 +211,25 @@ public class GridH2RowDescriptor {
     }
 
     /**
+     * @return Time type.
+     */
+    public int timeType() {
+        return timeType;
+    }
+
+    /**
+     * @return Time value.
+     */
+    public Object timeColumnValue(Object key, Object val) {
+        try {
+            return type.property(QueryUtils.TIME_FIELD_NAME).value(key, val);
+        }
+        catch (IgniteCheckedException e) {
+            throw DbException.convert(e);
+        }
+    }
+
+    /**
      * @return Total fields count.
      */
     public int fieldsCount() {
@@ -320,6 +344,9 @@ public class GridH2RowDescriptor {
     @SuppressWarnings("RedundantIfStatement")
     public boolean isKeyValueOrVersionColumn(int colId) {
         assert colId >= 0;
+
+        if (colId == QueryUtils.TIME_COL)
+            return false;
 
         if (colId < QueryUtils.DEFAULT_COLUMNS_COUNT)
             return true;

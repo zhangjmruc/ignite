@@ -104,6 +104,7 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.ignite.internal.processors.query.QueryUtils.KEY_COL;
 import static org.apache.ignite.internal.processors.query.QueryUtils.KEY_FIELD_NAME;
 import static org.apache.ignite.internal.processors.query.QueryUtils.VAL_FIELD_NAME;
+import static org.apache.ignite.internal.processors.query.QueryUtils.TIME_FIELD_NAME;
 
 /**
  * H2 utility methods.
@@ -214,6 +215,8 @@ public class H2Utils {
             .a(KEY_FIELD_NAME).a(' ').a(keyType).a(keyValVisibility).a(" NOT NULL");
 
         sql.a(',').a(VAL_FIELD_NAME).a(' ').a(valTypeStr).a(keyValVisibility);
+
+        sql.a(',').a(TIME_FIELD_NAME).a(' ').a("TIMESTAMP INVISIBLE DEFAULT CURRENT_TIMESTAMP");
 
         for (Map.Entry<String, Class<?>> e : tbl.type().fields().entrySet()) {
             GridQueryProperty prop = tbl.type().property(e.getKey());

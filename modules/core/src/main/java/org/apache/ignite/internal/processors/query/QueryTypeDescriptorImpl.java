@@ -46,6 +46,7 @@ import static org.apache.ignite.internal.processors.cache.query.IgniteQueryError
 import static org.apache.ignite.internal.processors.cache.query.IgniteQueryErrorCode.VALUE_SCALE_OUT_OF_RANGE;
 import static org.apache.ignite.internal.processors.query.QueryUtils.KEY_FIELD_NAME;
 import static org.apache.ignite.internal.processors.query.QueryUtils.VAL_FIELD_NAME;
+import static org.apache.ignite.internal.processors.query.QueryUtils.TIME_FIELD_NAME;
 
 /**
  * Descriptor of type.
@@ -318,7 +319,8 @@ public class QueryTypeDescriptorImpl implements GridQueryTypeDescriptor {
      * @return {@code True} if exists.
      */
     public boolean hasField(String field) {
-        return props.containsKey(field) || QueryUtils.VAL_FIELD_NAME.equalsIgnoreCase(field);
+        return props.containsKey(field) || QueryUtils.VAL_FIELD_NAME.equalsIgnoreCase(field) ||
+                QueryUtils.TIME_FIELD_NAME.equalsIgnoreCase(field);
     }
 
     /**

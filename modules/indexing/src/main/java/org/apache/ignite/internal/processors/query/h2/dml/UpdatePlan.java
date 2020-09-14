@@ -17,6 +17,7 @@
 
 package org.apache.ignite.internal.processors.query.h2.dml;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -257,6 +258,12 @@ public final class UpdatePlan {
         // We update columns in the order specified by the table for a reason - table's
         // column order preserves their precedence for correct update of nested properties.
         Column[] tblCols = tbl.getColumns();
+
+
+        // Current DEFAULT_COLUMNS_COUNT is 3 after added a _TIME column
+        // Handle the column to assign current system time.
+        Timestamp ts = new Timestamp(System.currentTimeMillis());
+        desc.setValue(QueryUtils.TIME_FIELD_NAME, key, val, (Object) ts);
 
         // First 2 columns are _key and _val Skip 'em.
         for (int i = QueryUtils.DEFAULT_COLUMNS_COUNT; i < tblCols.length; i++) {

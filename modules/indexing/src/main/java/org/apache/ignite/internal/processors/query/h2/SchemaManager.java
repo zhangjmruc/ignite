@@ -597,6 +597,32 @@ public class SchemaManager {
     }
 
     /**
+     * Drop DB schema if it exists.
+     *
+     * @param schemaName Schema name.
+     */
+    public void DynamicDropSchema(String schemaName) throws IgniteCheckedException {
+        H2Schema schema = schema(schemaName);
+
+        // Call dynamicTableDrop() for each table in the schema, then drop the schema itself.
+        for (H2TableDescriptor tbl : schema.tables()) {
+            ctx.query().dynamicTableDrop(tbl.table().cacheName(), tbl.tableName(), true);
+        }
+
+        synchronized (schemaMux) {
+            if (schema.decrementUsageCount()) {
+                schemas.remove(schemaName);
+
+                try {
+                    dropSchema(schemaName);
+                } catch (Exception e) {
+                    U.error(log, "Failed to drop schema: " + schemaName, e);
+                }
+            }
+        }
+    }
+
+    /**
      * Add initial user index.
      *
      * @param schemaName Schema name.
