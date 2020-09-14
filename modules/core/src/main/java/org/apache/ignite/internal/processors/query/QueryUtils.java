@@ -85,13 +85,16 @@ import static org.apache.ignite.internal.processors.cache.query.IgniteQueryError
  */
 public class QueryUtils {
     /** */
-    public static final int DEFAULT_COLUMNS_COUNT = 2;
+    public static final int DEFAULT_COLUMNS_COUNT = 3;
 
     /** Key column. */
     public static final int KEY_COL = 0;
 
     /** Value column. */
     public static final int VAL_COL = 1;
+
+    /** Time column. */
+    public static final int TIME_COL = 2;
 
     /** Default schema. */
     public static final String DFLT_SCHEMA = "PUBLIC";
@@ -107,6 +110,9 @@ public class QueryUtils {
 
     /** Field name for value. */
     public static final String VAL_FIELD_NAME = "_VAL";
+
+    /** Added an invisible field for insert time. */
+    public static final String TIME_FIELD_NAME="_TIME";
 
     /** Well-known template name for PARTITIONED cache. */
     public static final String TEMPLATE_PARTITIONED = "PARTITIONED";
@@ -642,6 +648,13 @@ public class QueryUtils {
             !fields.containsKey(valFieldName)) {
             addKeyValueValidationProperty(ctx, qryEntity, d, valFieldName, false);
         }
+
+        String timeFieldName = TIME_FIELD_NAME;
+
+        QueryBinaryProperty prop = buildBinaryProperty(ctx, timeFieldName,
+                Timestamp.class, d.aliases(), false, true, null, -1, -1);
+
+        d.addProperty(prop, false, false); // Considered as a system default field
 
         processIndexes(qryEntity, d);
     }
