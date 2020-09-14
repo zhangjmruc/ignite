@@ -49,6 +49,9 @@ namespace ignite
             /** Version 2.7.0: added fields precision and scale. */
             static const ProtocolVersion VERSION_2_7_0;
 
+            /** Version 2.7.1: added query local. */
+            static const ProtocolVersion VERSION_2_7_1;
+
             typedef std::set<ProtocolVersion> VersionSet;
 
             /**

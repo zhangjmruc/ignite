@@ -52,6 +52,7 @@ namespace ignite
             const std::string ConnectionStringParser::Key::user                   = "user";
             const std::string ConnectionStringParser::Key::password               = "password";
             const std::string ConnectionStringParser::Key::nestedTxMode           = "nested_tx_mode";
+            const std::string ConnectionStringParser::Key::local                  = "local";
 
             ConnectionStringParser::ConnectionStringParser(Configuration& cfg):
                 cfg(cfg)
@@ -441,6 +442,23 @@ namespace ignite
                     }
 
                     cfg.SetNestedTxMode(mode);
+                }
+                else if (lKey == Key::local)
+                {
+                    BoolParseResult::Type res = StringToBool(value);
+
+                    if (res == BoolParseResult::AI_UNRECOGNIZED)
+                    {
+                        if (diag)
+                        {
+                            diag->AddStatusRecord(SqlState::S01S02_OPTION_VALUE_CHANGED,
+                                MakeErrorMessage("Unrecognized bool value. Using default value.", key, value));
+                        }
+
+                        return;
+                    }
+
+                    cfg.SetLocal(res == BoolParseResult::AI_TRUE);
                 }
                 else if (diag)
                 {

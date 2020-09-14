@@ -100,6 +100,9 @@ namespace ignite
 
                     /** Connection attribute keyword for nestedTxMode attribute. */
                     static const std::string nestedTxMode;
+
+                    /** Connection attribute keyword for local attribute. */
+                    static const std::string local;
                 };
 
                 /**

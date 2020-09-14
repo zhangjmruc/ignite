@@ -190,6 +190,7 @@ public class JdbcRequestHandler implements ClientListenerRequestHandler {
         boolean autoCloseCursors,
         boolean lazy,
         boolean skipReducerOnUpdate,
+        boolean local,
         NestedTxMode nestedTxMode,
         @Nullable Boolean dataPageScanEnabled,
         @Nullable Integer updateBatchSize,
@@ -217,6 +218,7 @@ public class JdbcRequestHandler implements ClientListenerRequestHandler {
             replicatedOnly,
             lazy,
             skipReducerOnUpdate,
+            local,
             dataPageScanEnabled,
             updateBatchSize
         );
@@ -972,6 +974,7 @@ public class JdbcRequestHandler implements ClientListenerRequestHandler {
         qry.setNestedTxMode(nestedTxMode);
         qry.setSchema(schemaName);
         qry.setTimeout(0, TimeUnit.MILLISECONDS);
+        qry.setLocal(cliCtx.isLocal());
 
         if (cliCtx.updateBatchSize() != null)
             qry.setUpdateBatchSize(cliCtx.updateBatchSize());

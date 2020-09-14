@@ -108,6 +108,9 @@ namespace ignite
 
                     /** Default value for nestedTxMode attribute. */
                     static const NestedTxMode::Type nestedTxMode;
+
+                    /** Default value for local attribute. */
+                    static const bool local;
                 };
 
                 /**
@@ -562,6 +565,27 @@ namespace ignite
                 bool IsNestedTxModeSet() const;
 
                 /**
+                 * Check query local flag.
+                 *
+                 * @return True if replicated only is enabled.
+                 */
+                bool IsLocal() const;
+
+                /**
+                 * Set query local flag.
+                 *
+                 * @param val Value to set.
+                 */
+                void SetLocal(bool val);
+
+                /**
+                 * Check if the value set.
+                 *
+                 * @return @true if the value set.
+                 */
+                bool IsLocalSet() const;
+
+                /**
                  * Get argument map.
                  *
                  * @param res Resulting argument map.
@@ -641,6 +665,9 @@ namespace ignite
 
                 /** Nested transaction mode. */
                 SettableValue<NestedTxMode::Type> nestedTxMode;
+
+                /** Query local flag. */
+                SettableValue<bool> local;
             };
 
             template<>

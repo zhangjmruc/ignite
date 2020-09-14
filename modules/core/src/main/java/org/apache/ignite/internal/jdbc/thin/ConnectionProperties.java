@@ -432,4 +432,16 @@ public interface ConnectionProperties {
      * @throws SQLException On error.
      */
     public void setUpdateBatchSize(@Nullable Integer updateBatchSize) throws SQLException;
+
+    /**
+     * @return {@code true} if jdbc thin query local is enabled for this connection,
+     * {@code false} if it's disabled.
+     */
+    public boolean isLocal();
+
+    /**
+     * @param loc {@code true} if jdbc thin query local is enabled
+     * for this connection, if {@code false} then it's disabled.
+     */
+    public void setLocal(boolean loc);
 }

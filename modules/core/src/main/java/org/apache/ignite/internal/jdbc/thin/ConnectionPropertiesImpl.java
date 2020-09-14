@@ -201,6 +201,10 @@ public class ConnectionPropertiesImpl implements ConnectionProperties, Serializa
             "Set to 1 to prevent deadlock on update where keys sequence are different " +
             "in several concurrent updates.", null, false, 1, Integer.MAX_VALUE);
 
+    /** Query local flag. */
+    private BooleanProperty local = new BooleanProperty(
+            "local","Whether jdbc thin query local is enabled.", false, false);
+
     /** Properties array. */
     private final ConnectionProperty [] propsArray = {
         distributedJoins, enforceJoinOrder, collocated, replicatedOnly, autoCloseServerCursor,
@@ -212,7 +216,7 @@ public class ConnectionPropertiesImpl implements ConnectionProperties, Serializa
         user, passwd,
         dataPageScanEnabled,
         partitionAwareness,
-        updateBatchSize
+        updateBatchSize, local
     };
 
     /** {@inheritDoc} */
@@ -536,6 +540,14 @@ public class ConnectionPropertiesImpl implements ConnectionProperties, Serializa
     /** {@inheritDoc} */
     @Override public void setUpdateBatchSize(@Nullable Integer updateBatchSize) throws SQLException {
         this.updateBatchSize.setValue(updateBatchSize);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isLocal() { return local.value(); }
+
+    /** {@inheritDoc} */
+    @Override public void setLocal(boolean loc) {
+        this.local.setValue(loc);
     }
 
     /**
