@@ -149,6 +149,7 @@ public class OdbcRequestHandler implements ClientListenerRequestHandler {
         boolean collocated,
         boolean lazy,
         boolean skipReducerOnUpdate,
+        boolean local,
         AuthorizationContext actx, NestedTxMode nestedTxMode, ClientListenerProtocolVersion ver) {
         this.ctx = ctx;
 
@@ -167,6 +168,7 @@ public class OdbcRequestHandler implements ClientListenerRequestHandler {
             replicatedOnly,
             lazy,
             skipReducerOnUpdate,
+            local,
             null,
             null
         );
@@ -368,6 +370,7 @@ public class OdbcRequestHandler implements ClientListenerRequestHandler {
         qry.setSchema(OdbcUtils.prepareSchema(schema));
         qry.setSkipReducerOnUpdate(cliCtx.isSkipReducerOnUpdate());
         qry.setNestedTxMode(nestedTxMode);
+        qry.setLocal(cliCtx.isLocal());
 
         return qry;
     }

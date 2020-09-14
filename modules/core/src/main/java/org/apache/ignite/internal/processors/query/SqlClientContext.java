@@ -98,6 +98,9 @@ public class SqlClientContext implements AutoCloseable {
     /** Logger. */
     private final IgniteLogger log;
 
+    /** Allow to set query local via ODBC connection. */
+    private boolean local;
+
     /**
      * @param ctx Kernal context.
      * @param orderedBatchWorkerFactory Ordered batch worker factory.
@@ -107,12 +110,13 @@ public class SqlClientContext implements AutoCloseable {
      * @param replicatedOnly Replicated caches only flag.
      * @param lazy Lazy query execution flag.
      * @param skipReducerOnUpdate Skip reducer on update flag.
+     * @param local Query local flag.
      * @param dataPageScanEnabled Enable scan data page mode.
      * @param updateBatchSize Size of internal batch for DML queries.
      */
     public SqlClientContext(GridKernalContext ctx, Factory<GridWorker> orderedBatchWorkerFactory,
         boolean distributedJoins, boolean enforceJoinOrder,
-        boolean collocated, boolean replicatedOnly, boolean lazy, boolean skipReducerOnUpdate,
+        boolean collocated, boolean replicatedOnly, boolean lazy, boolean skipReducerOnUpdate, boolean local,
         @Nullable Boolean dataPageScanEnabled,
         @Nullable Integer updateBatchSize
         ) {
@@ -126,6 +130,7 @@ public class SqlClientContext implements AutoCloseable {
         this.skipReducerOnUpdate = skipReducerOnUpdate;
         this.dataPageScanEnabled = dataPageScanEnabled;
         this.updateBatchSize = updateBatchSize;
+        this.local = local;
 
         log = ctx.log(SqlClientContext.class.getName());
     }
@@ -212,6 +217,13 @@ public class SqlClientContext implements AutoCloseable {
      */
     public boolean isReplicatedOnly() {
         return replicatedOnly;
+    }
+
+    /**
+     * @return Local flag.
+     */
+    public boolean isLocal() {
+        return local;
     }
 
     /**

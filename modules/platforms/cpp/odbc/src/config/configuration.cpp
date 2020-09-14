@@ -45,6 +45,7 @@ namespace ignite
             const bool Configuration::DefaultValue::collocated = false;
             const bool Configuration::DefaultValue::lazy = false;
             const bool Configuration::DefaultValue::skipReducerOnUpdate = false;
+            const bool Configuration::DefaultValue::local = false;
 
             const ProtocolVersion& Configuration::DefaultValue::protocolVersion = ProtocolVersion::GetCurrent();
 
@@ -79,7 +80,8 @@ namespace ignite
                 sslCaFile(DefaultValue::sslCaFile),
                 user(DefaultValue::user),
                 password(DefaultValue::password),
-                nestedTxMode(DefaultValue::nestedTxMode)
+                nestedTxMode(DefaultValue::nestedTxMode),
+                local(DefaultValue::local)
             {
                 // No-op.
             }
@@ -422,6 +424,21 @@ namespace ignite
                 return nestedTxMode.IsSet();
             }
 
+            bool Configuration::IsLocal() const
+            {
+                return local.GetValue();
+            }
+
+            void Configuration::SetLocal(bool val)
+            {
+                this->local.SetValue(val);
+            }
+
+            bool Configuration::IsLocalSet() const
+            {
+                return local.IsSet();
+            }
+
             int32_t Configuration::GetPageSize() const
             {
                 return pageSize.GetValue();
@@ -450,6 +467,7 @@ namespace ignite
                 AddToMap(res, ConnectionStringParser::Key::user, user);
                 AddToMap(res, ConnectionStringParser::Key::password, password);
                 AddToMap(res, ConnectionStringParser::Key::nestedTxMode, nestedTxMode);
+                AddToMap(res, ConnectionStringParser::Key::local, local);
             }
 
             template<>

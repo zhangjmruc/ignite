@@ -88,6 +88,9 @@ namespace ignite
 
             if (version >= ProtocolVersion::VERSION_2_7_0)
                 writer.WriteInt8(config.GetNestedTxMode());
+
+            if (version >= ProtocolVersion::VERSION_2_7_1)
+                writer.WriteInt8(config.IsLocal());
         }
 
         QueryExecuteRequest::QueryExecuteRequest(const std::string& schema, const std::string& sql,

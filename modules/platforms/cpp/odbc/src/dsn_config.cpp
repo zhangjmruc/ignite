@@ -217,6 +217,11 @@ namespace ignite
 
             if (nestedTxModeStr.IsSet() && !config.IsNestedTxModeSet())
                 config.SetNestedTxMode(NestedTxMode::FromString(nestedTxModeStr.GetValue(), config.GetNestedTxMode()));
+
+            SettableValue<bool> local = ReadDsnBool(dsn, ConnectionStringParser::Key::local);
+
+            if (local.IsSet() && !config.IsLocalSet())
+                config.SetLocal(local.GetValue());
         }
     }
 }

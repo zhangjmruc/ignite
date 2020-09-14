@@ -64,8 +64,11 @@ public class JdbcConnectionContext extends ClientListenerAbstractConnectionConte
     /** Version 2.8.0: adds query id in order to implement cancel feature, partition awareness support: IEP-23.*/
     static final ClientListenerProtocolVersion VER_2_8_0 = ClientListenerProtocolVersion.create(2, 8, 0);
 
+    /** Version 2.8.1: adds query local in order to implement query executed on a local node feature. */
+    static final ClientListenerProtocolVersion VER_2_8_1 = ClientListenerProtocolVersion.create(2, 8, 1);
+
     /** Current version. */
-    public static final ClientListenerProtocolVersion CURRENT_VER = VER_2_8_0;
+    public static final ClientListenerProtocolVersion CURRENT_VER = VER_2_8_1;
 
     /** Supported versions. */
     private static final Set<ClientListenerProtocolVersion> SUPPORTED_VERS = new HashSet<>();
@@ -169,12 +172,16 @@ public class JdbcConnectionContext extends ClientListenerAbstractConnectionConte
 
         Boolean dataPageScanEnabled = null;
         Integer updateBatchSize = null;
+        boolean local = false;
 
         if (ver.compareTo(VER_2_8_0) >= 0) {
             dataPageScanEnabled = nullableBooleanFromByte(reader.readByte());
 
             updateBatchSize = JdbcUtils.readNullableInteger(reader);
         }
+
+        if (ver.compareTo(VER_2_8_1) >= 0)
+            local = reader.readBoolean();
 
         if (ver.compareTo(VER_2_5_0) >= 0) {
             String user = null;
@@ -209,7 +216,7 @@ public class JdbcConnectionContext extends ClientListenerAbstractConnectionConte
         };
 
         handler = new JdbcRequestHandler(busyLock, sender, maxCursors, distributedJoins, enforceJoinOrder,
-            collocated, replicatedOnly, autoCloseCursors, lazyExec, skipReducerOnUpdate, nestedTxMode,
+            collocated, replicatedOnly, autoCloseCursors, lazyExec, skipReducerOnUpdate, local, nestedTxMode,
             dataPageScanEnabled, updateBatchSize, actx, ver, this);
 
         handler.start();

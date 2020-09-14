@@ -56,8 +56,11 @@ public class OdbcConnectionContext extends ClientListenerAbstractConnectionConte
     /** Version 2.7.0: added precision and scale. */
     public static final ClientListenerProtocolVersion VER_2_7_0 = ClientListenerProtocolVersion.create(2, 7, 0);
 
+    /** Version 2.7.1: added query local. */
+    public static final ClientListenerProtocolVersion VER_2_7_1 = ClientListenerProtocolVersion.create(2, 7, 1);
+
     /** Current version. */
-    private static final ClientListenerProtocolVersion CURRENT_VER = VER_2_7_0;
+    private static final ClientListenerProtocolVersion CURRENT_VER = VER_2_7_1;
 
     /** Supported versions. */
     private static final Set<ClientListenerProtocolVersion> SUPPORTED_VERS = new HashSet<>();
@@ -82,6 +85,7 @@ public class OdbcConnectionContext extends ClientListenerAbstractConnectionConte
 
     static {
         SUPPORTED_VERS.add(CURRENT_VER);
+        SUPPORTED_VERS.add(VER_2_7_0);
         SUPPORTED_VERS.add(VER_2_5_0);
         SUPPORTED_VERS.add(VER_2_3_0);
         SUPPORTED_VERS.add(VER_2_3_2);
@@ -153,6 +157,11 @@ public class OdbcConnectionContext extends ClientListenerAbstractConnectionConte
             nestedTxMode = NestedTxMode.fromByte(nestedTxModeVal);
         }
 
+        boolean local = false;
+
+        if (ver.compareTo(VER_2_7_1) >= 0)
+            local = reader.readBoolean();
+
         AuthorizationContext actx = authenticate(user, passwd);
 
         ClientListenerResponseSender sender = new ClientListenerResponseSender() {
@@ -169,7 +178,7 @@ public class OdbcConnectionContext extends ClientListenerAbstractConnectionConte
         };
 
         handler = new OdbcRequestHandler(ctx, busyLock, sender, maxCursors, distributedJoins, enforceJoinOrder,
-            replicatedOnly, collocated, lazy, skipReducerOnUpdate, actx, nestedTxMode, ver);
+            replicatedOnly, collocated, lazy, skipReducerOnUpdate, local, actx, nestedTxMode, ver);
 
         parser = new OdbcMessageParser(ctx, ver);
 
