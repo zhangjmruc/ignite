@@ -649,10 +649,8 @@ public class QueryUtils {
             addKeyValueValidationProperty(ctx, qryEntity, d, valFieldName, false);
         }
 
-        String timeFieldName = TIME_FIELD_NAME;
-
-        QueryBinaryProperty prop = buildBinaryProperty(ctx, timeFieldName,
-                Timestamp.class, d.aliases(), false, true, null, -1, -1);
+        QueryBinaryProperty prop = buildBinaryProperty(ctx, TIME_FIELD_NAME,
+                Long.class, d.aliases(), false, true, null, -1, -1);
 
         d.addProperty(prop, false, false); // Considered as a system default field
 

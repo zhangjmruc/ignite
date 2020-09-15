@@ -88,7 +88,7 @@ public class GridH2RowDescriptor {
 
         keyType = DataType.getTypeFromClass(type.keyClass());
         valType = DataType.getTypeFromClass(type.valueClass());
-        timeType = DataType.getTypeFromClass(Timestamp.class);
+        timeType = DataType.getTypeFromClass(Long.class);
 
         refreshMetadataFromTypeDescriptor();
     }
