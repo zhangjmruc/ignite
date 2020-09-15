@@ -216,7 +216,7 @@ public class H2Utils {
 
         sql.a(',').a(VAL_FIELD_NAME).a(' ').a(valTypeStr).a(keyValVisibility);
 
-        sql.a(',').a(TIME_FIELD_NAME).a(' ').a("TIMESTAMP INVISIBLE DEFAULT CURRENT_TIMESTAMP");
+        sql.a(',').a(TIME_FIELD_NAME).a(' ').a("BIGINT INVISIBLE");
 
         for (Map.Entry<String, Class<?>> e : tbl.type().fields().entrySet()) {
             GridQueryProperty prop = tbl.type().property(e.getKey());
