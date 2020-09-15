@@ -17,7 +17,6 @@
 
 package org.apache.ignite.internal.processors.query.h2.dml;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;

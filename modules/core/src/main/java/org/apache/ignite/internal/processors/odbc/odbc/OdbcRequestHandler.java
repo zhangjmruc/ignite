@@ -698,6 +698,13 @@ public class OdbcRequestHandler implements ClientListenerRequestHandler {
                         if (!meta.contains(columnMeta))
                             meta.add(columnMeta);
                     }
+
+                    // add hidden column _TIME
+                    OdbcColumnMeta columnMeta = new OdbcColumnMeta(table.schemaName(), table.tableName(),
+                            "_TIME", Long.class, -1, -1, ver);
+
+                    if(!meta.contains(columnMeta))
+                        meta.add(columnMeta);
                 }
             }
 
