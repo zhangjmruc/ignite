@@ -168,7 +168,7 @@ public final class DmlAstUtils {
         valCol.resultType(GridSqlType.fromColumn(h2ValCol));
 
         mapQry.addColumn(keyCol, true);
-        mapQry.addColumn(valCol, true);
+//        mapQry.addColumn(valCol, true);
 
         GridSqlElement where = del.where();
 

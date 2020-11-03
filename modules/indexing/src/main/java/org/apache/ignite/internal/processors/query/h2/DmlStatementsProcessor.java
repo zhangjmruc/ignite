@@ -57,7 +57,33 @@ public class DmlStatementsProcessor {
     }
 
     /**
-     * Entry processor invoked by UPDATE and DELETE operations.
+     * Entry processor invoked by DELETE operations.
+     */
+    public static final class DeleteEntryProcessor implements EntryProcessor<Object, Object, Boolean> {
+
+        /** Action to perform on entry. */
+        private final IgniteInClosure<MutableEntry<Object, Object>> entryModifier;
+
+        /** */
+        public DeleteEntryProcessor(Object val, IgniteInClosure<MutableEntry<Object, Object>> entryModifier) {
+            this.entryModifier = entryModifier;
+        }
+
+        /** {@inheritDoc} */
+        @Override public Boolean process(MutableEntry<Object, Object> entry, Object... arguments)
+                throws EntryProcessorException {
+            if (!entry.exists())
+                return null;
+
+            entryModifier.apply(entry);
+
+            return null; // To leave out only erroneous keys - nulls are skipped on results' processing.
+        }
+    }
+
+
+    /**
+     * Entry processor invoked by UPDATE operations.
      */
     public static final class ModifyingEntryProcessor implements EntryProcessor<Object, Object, Boolean> {
         /** Value to expect. */

@@ -342,7 +342,7 @@ public class DmlUtils {
         DmlBatchSender sender = new DmlBatchSender(cctx, pageSize, 1);
 
         for (List<?> row : cursor) {
-            if (row.size() != 2)
+            if (row.size() != 1)
                 continue;
 
             Object key = row.get(0);
@@ -354,7 +354,7 @@ public class DmlUtils {
 
             sender.add(
                 key,
-                new DmlStatementsProcessor.ModifyingEntryProcessor(row.get(1), rmvC),
+                new DmlStatementsProcessor.DeleteEntryProcessor(key, rmvC),
                 0
             );
         }
