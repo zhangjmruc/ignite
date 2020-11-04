@@ -17,23 +17,10 @@
 
 package org.apache.ignite.internal.processors.query.h2.dml;
 
-import java.lang.reflect.Array;
-import java.sql.BatchUpdateException;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.cache.processor.MutableEntry;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cache.query.SqlFieldsQuery;
-import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.internal.processors.cache.CacheOperationContext;
+import org.apache.ignite.internal.processors.cache.GridCacheAdapter;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
 import org.apache.ignite.internal.processors.cache.QueryCursorImpl;
 import org.apache.ignite.internal.processors.cache.query.IgniteQueryErrorCode;
@@ -49,7 +36,6 @@ import org.apache.ignite.internal.util.typedef.T3;
 import org.apache.ignite.internal.util.typedef.X;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.lang.IgniteBiTuple;
-import org.apache.ignite.lang.IgniteInClosure;
 import org.apache.ignite.transactions.TransactionDuplicateKeyException;
 import org.h2.util.DateTimeUtils;
 import org.h2.util.LocalDateTimeUtils;
@@ -57,6 +43,13 @@ import org.h2.value.Value;
 import org.h2.value.ValueDate;
 import org.h2.value.ValueTime;
 import org.h2.value.ValueTimestamp;
+
+import java.lang.reflect.Array;
+import java.sql.BatchUpdateException;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.*;
 
 import static org.apache.ignite.internal.processors.cache.query.IgniteQueryErrorCode.DUPLICATE_KEY;
 import static org.apache.ignite.internal.processors.cache.query.IgniteQueryErrorCode.createJdbcSqlException;
@@ -339,48 +332,28 @@ public class DmlUtils {
      */
     private static UpdateResult doDelete(GridCacheContext cctx, Iterable<List<?>> cursor, int pageSize)
         throws IgniteCheckedException {
-        DmlBatchSender sender = new DmlBatchSender(cctx, pageSize, 1);
-
+        int batchSize = 10000;
+        ArrayList<Object> deleteKeys = new ArrayList<Object>(batchSize);
+        GridCacheAdapter cacheAdapter  = cctx.cache();
+        int totalDeleted = 0;
         for (List<?> row : cursor) {
             if (row.size() != 1)
                 continue;
 
             Object key = row.get(0);
-
-            ClusterNode node = sender.primaryNodeByKey(key);
-
-            IgniteInClosure<MutableEntry<Object, Object>> rmvC =
-                DmlStatementsProcessor.getRemoveClosure(node, key);
-
-            sender.add(
-                key,
-                new DmlStatementsProcessor.DeleteEntryProcessor(key, rmvC),
-                0
-            );
-        }
-
-        sender.flush();
-
-        SQLException resEx = sender.error();
-
-        if (resEx != null) {
-            if (!F.isEmpty(sender.failedKeys())) {
-                // Don't go for a re-run if processing of some keys yielded exceptions and report keys that
-                // had been modified concurrently right away.
-                String msg = "Failed to DELETE some keys because they had been modified concurrently " +
-                    "[keys=" + sender.failedKeys() + ']';
-
-                SQLException conEx = createJdbcSqlException(msg, IgniteQueryErrorCode.CONCURRENT_UPDATE);
-
-                conEx.setNextException(resEx);
-
-                resEx = conEx;
+            deleteKeys.add(key);
+            if(deleteKeys.size() == batchSize) {
+                cacheAdapter.removeAll(deleteKeys);
+                totalDeleted += deleteKeys.size();
+                deleteKeys.clear();
             }
-
-            throw new IgniteSQLException(resEx);
         }
-
-        return new UpdateResult(sender.updateCount(), sender.failedKeys().toArray(),
+        if(!deleteKeys.isEmpty()) {
+            cacheAdapter.removeAll(deleteKeys);
+            totalDeleted += deleteKeys.size();
+            deleteKeys.clear();
+        }
+        return new UpdateResult(totalDeleted, new Object[0],
             cursor instanceof QueryCursorImpl ? ((QueryCursorImpl) cursor).partitionResult() : null);
     }
 
